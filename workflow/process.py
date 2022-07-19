@@ -15,23 +15,34 @@ def process(query_str):
     value = parse_query_value(query_str)
     if value is not None:
         results = alfred_items_for_value(value)
-        xml = alfred.xml(results) # compiles the XML answer
-        alfred.write(xml) # writes the XML back to Alfred
+        # xml = alfred.xml(results) # compiles the XML answer
+        # alfred.write(xml) # writes the XML back to Alfred
+        json = alfred.to_json(results)
+        alfred.write(json)
 
 def parse_query_value(query_str):
     """ Return value for the query string """
-    try:
-        query_str = str(query_str).strip('"\' ')
-        if query_str == 'now':
-            d = utcnow()
-        else:
-            # Parse datetime string or timestamp
-            try:
-                d = epoch(float(query_str))
-            except ValueError:
-                d = parse(str(query_str), get_timezone())
-    except (TypeError, ValueError):
-        d = None
+    # try:
+    #     query_str = str(query_str).strip('"\' ')
+    #     if query_str == 'now':
+    #         d = utcnow()
+    #     else:
+    #         # Parse datetime string or timestamp
+    #         try:
+    #             d = epoch(float(query_str))
+    #         except ValueError:
+    #             d = parse(str(query_str, get_timezone()))
+    # except (TypeError, ValueError):
+    #     d = None
+    query_str = str(query_str).strip('"\' ')
+    if query_str == 'now':
+        d = utcnow()
+    else:
+        # Parse datetime string or timestamp
+        try:
+            d = epoch(float(query_str))
+        except ValueError:
+            d = parse(str(query_str), get_timezone())
     return d
 
 def alfred_items_for_value(value):
@@ -59,22 +70,23 @@ def alfred_items_for_value(value):
     # Various formats
     tz = get_timezone()
     formats = [
+        # 19370101
+        ("%Y%m%d", tz),
         # 1937-01-01 12:00:27
         ("%Y-%m-%d %H:%M:%S", tz),
         # 19 May 2002 15:21:36
-        ("%d %b %Y %H:%M:%S", tz),
+        # ("%d %b %Y %H:%M:%S", ''), 
         # Sun, 19 May 2002 15:21:36
-        ("%a, %d %b %Y %H:%M:%S", tz),
+        # ("%a, %d %b %Y %H:%M:%S", ''), 
         # 1937-01-01T12:00:27
-        ("%Y-%m-%dT%H:%M:%S", tz),
+        # ("%Y-%m-%dT%H:%M:%S", ''),
         # 1996-12-19T16:39:57-0800
         ("%Y-%m-%dT%H:%M:%S%z", tz),
     ]
+    if tz != 'UTC':
+        formats.append(("%Y-%m-%d %H:%M:%S", 'UTC'))
     for format, description in formats:
-        tz_value = value
-        if description:
-            tz_value = value.shift(description)
-        item_value = tz_value.datetime.strftime(format)
+        item_value = value.shift(description) .datetime.strftime(format)
         results.append(alfred.Item(
             title=str(item_value),
             subtitle=description,

@@ -4,6 +4,7 @@ import os
 import plistlib
 import unicodedata
 import sys
+import json
 
 from xml.etree.ElementTree import Element, SubElement, tostring
 
@@ -51,6 +52,15 @@ class Item(object):
                 attributes = {}
             SubElement(item, attribute, self.unicode(attributes)).text = unicode(value)
         return item
+    
+    def to_dict(self):
+        return {
+            'uid': self.attributes['uid'],
+            'title': self.title,
+            'subtitle': self.subtitle,
+            'arg': self.attributes['arg'],
+            'icon': self.icon,
+        }
 
 def args(characters=None):
     return tuple(unescape(decode(arg), characters) for arg in sys.argv[1:])
@@ -74,7 +84,7 @@ def unescape(query, characters=None):
 
 def work(volatile):
     path = {
-        true: env_arg('alfred_workflow_cache'), # using alfred env variable instead of fixed string
+        true: env_arg('alfred_workflow_cache'),
         false: env_arg('alfred_workflow_data')
     }[bool(volatile)]
     return _create(os.path.expanduser(path))
@@ -87,6 +97,9 @@ def xml(items, maxresults=_MAX_RESULTS_DEFAULT):
     for item in itertools.islice(items, maxresults):
         root.append(item.xml())
     return tostring(root, encoding='utf-8')
+
+def to_json(items, maxresults=_MAX_RESULTS_DEFAULT):
+    return json.dumps({'items': [x.to_dict() for x in items[:maxresults]]})
 
 def _create(path):
     if not os.path.isdir(path):
